@@ -1,3 +1,6 @@
+/*
+#include"pch.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -32,4 +35,23 @@ int main() {
 	glfwTerminate();
 
 	return 0;
+}
+*/
+#include"pch.h"
+#include"MyApp.h"
+
+int main()
+{
+	MyApp app;
+
+	try
+	{
+		app.Run();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+	
+	return EXIT_SUCCESS;
 }
