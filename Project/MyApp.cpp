@@ -22,7 +22,8 @@ void MyApp::InitWindow()
 void MyApp::InitVulkan()
 {
 	CreateInstance();
-	SetupDebugMessenger();
+	SetupDebugMessenger(); 
+	PickPhysicalDevice();
 }
 
 void MyApp::MainLoop()
@@ -196,4 +197,68 @@ void MyApp::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT&
 	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
 	createInfo.pfnUserCallback = DebugCallBack;
 	createInfo.pUserData = nullptr;
+}
+
+void MyApp::PickPhysicalDevice()
+{
+	uint32_t deviceCount = 0;
+	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+	if (deviceCount == 0)
+	{
+		throw std::runtime_error("failed to find GPUs with Vulkan support!");
+	}
+
+	std::vector<VkPhysicalDevice> devices(deviceCount);
+	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+	for (const VkPhysicalDevice device : devices)
+	{
+		if (IsDeviceSuitable(device))
+		{
+			physicalDevice = device;
+			break;
+		}
+	}
+
+	if (physicalDevice == VK_NULL_HANDLE)
+	{
+		throw std::runtime_error("failed to find a suitable GPU!");
+	}
+}
+
+bool MyApp::IsDeviceSuitable(VkPhysicalDevice device)
+{
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+	VkPhysicalDeviceFeatures devicefeatures;
+	vkGetPhysicalDeviceFeatures(device, &devicefeatures);
+
+	QueueFamilyIndices indices = FindQueueFamily(device);
+
+	return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && devicefeatures.geometryShader && indices.IsComplete();
+}
+
+QueueFamilyIndices  MyApp::FindQueueFamily(VkPhysicalDevice device)
+{
+	QueueFamilyIndices indices;
+
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+	int i = 0;
+	for (const VkQueueFamilyProperties& queueFamily : queueFamilies)
+	{
+		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			indices.graphicFamily = i;
+		}
+		i++;
+	}
+
+	return indices;
 }

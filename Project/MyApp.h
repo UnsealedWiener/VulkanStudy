@@ -2,6 +2,16 @@
 
 #define NDEBUG 1
 
+struct QueueFamilyIndices
+{
+	std::optional<uint32_t> graphicFamily;
+
+	bool IsComplete()
+	{
+		return graphicFamily.has_value();
+	}
+};
+
 class MyApp
 {
 public:
@@ -13,12 +23,13 @@ private:
 	void MainLoop();
 	void CleanUp();
 
+
 	void CreateInstance();
 
 	bool CheckValidationLayerSupport();
 	std::vector<const char*> GetRequiredExtensions();
 	void SetupDebugMessenger();
-
+	
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallBack(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -35,6 +46,12 @@ private:
 
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
+	void PickPhysicalDevice();
+	
+	bool IsDeviceSuitable(VkPhysicalDevice device);
+
+	QueueFamilyIndices FindQueueFamily(VkPhysicalDevice device);
+
 private:
 	//glfw variables
 	GLFWwindow* pWindow;
@@ -44,6 +61,7 @@ private:
 	//Vulkan variables
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
 	//validation layer variables
 #ifndef NDEBUG
