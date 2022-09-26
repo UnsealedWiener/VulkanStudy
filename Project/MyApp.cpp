@@ -22,8 +22,10 @@ void MyApp::InitWindow()
 void MyApp::InitVulkan()
 {
 	CreateInstance();
-	SetupDebugMessenger(); 
+	SetupDebugMessenger();
+	CreateSurface();
 	PickPhysicalDevice();
+	CreateLogicalDevice();
 }
 
 void MyApp::MainLoop()
@@ -36,11 +38,13 @@ void MyApp::MainLoop()
 
 void MyApp::CleanUp()
 {
+	vkDestroyDevice(device, nullptr);
+
 	if (enableValidationLayers)
 	{
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 	}
-
+	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
 
 	glfwDestroyWindow(pWindow);
@@ -255,10 +259,97 @@ QueueFamilyIndices  MyApp::FindQueueFamily(VkPhysicalDevice device)
 	{
 		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			indices.graphicFamily = i;
+			indices.graphicsFamily = i;
 		}
+
+		//Although the Vulkan implementation may support window system integration(like create VkSurfaceKHR beforehand),
+		//that does not mean that every device in the system supports it. Therefore we need to ensure that a device can present images to the surface we created.
+		//Since the presentation is a queue-specific feature, the problem is actually about finding a queue family that supports presenting to the surface we created.
+		//It's actually possible that the queue families supporting drawing commands and the ones supporting presentation do not overlap.
+		//Therefore we have to take into account that there could be a distinct presentation queue by modifying the QueueFamilyIndices structure 
+		VkBool32 presentSupport = false;
+		if (vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport));
+		{
+			indices.presentFamily = i;
+		}
+
+		if (indices.IsComplete()) {
+			break;
+		}
+
 		i++;
 	}
 
 	return indices;
+}
+
+void MyApp::CreateLogicalDevice()
+{
+	QueueFamilyIndices indices = FindQueueFamily(physicalDevice);
+
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+	float queuePriority = 1.0f;
+
+	for (uint32_t queueFamily : uniqueQueueFamilies)
+	{
+		VkDeviceQueueCreateInfo queueCreateInfo{};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = queueFamily;
+		queueCreateInfo.queueCount = 1;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+		queueCreateInfos.push_back(queueCreateInfo);
+	}
+
+	VkPhysicalDeviceFeatures devicefeatures{};
+
+	VkDeviceCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos = queueCreateInfos.data();
+	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+	createInfo.pEnabledFeatures = &devicefeatures;
+
+//https://registry.khronos.org/vulkan/specs/1.3-extensions/html/chap40.html#extendingvulkan-layers-devicelayerdeprecation
+//no longer need this code in currunt Vulkan
+#if 0	
+	if (enableValidationLayers)
+	{
+		createInfo.enabledLayerCount = validationLayers.size();
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else
+	{
+		createInfo.enabledLayerCount = 0;
+		createInfo.ppEnabledLayerNames = nullptr;
+	}
+#endif
+
+	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create logical device!");
+	}
+
+	vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicQueue);
+	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+}
+
+void MyApp::CreateSurface()
+{
+#if SPECIFIED_TO_WIN32
+	VkWin32SurfaceCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	createInfo.hwnd = glfwGetWin32Window(window);
+	createInfo.hinstance = GetModuleHandle(nullptr);
+	// note : Technically this is a WSI extension function, but it is so commonly used that the standard Vulkan loader includes it, so unlike other extensions you don't need to explicitly load it.
+	if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface!");
+	}
+#else
+	if (glfwCreateWindowSurface(instance, pWindow, nullptr, &surface) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create window surface!");
+	}
+#endif
 }
