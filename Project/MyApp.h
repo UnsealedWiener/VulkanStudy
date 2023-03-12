@@ -70,6 +70,8 @@ private:
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 	void CreateSwapChain();
+
+	void CreateImageViews();
 private:
 	//glfw variables
 	GLFWwindow* pWindow;
@@ -90,6 +92,7 @@ private:
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 
+	std::vector<VkImageView> swapChainImageViews;
 	//validation layer variables
 #ifndef NDEBUG
 	const bool enableValidationLayers = false;
