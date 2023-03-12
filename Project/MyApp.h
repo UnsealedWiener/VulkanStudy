@@ -72,6 +72,10 @@ private:
 	void CreateSwapChain();
 
 	void CreateImageViews();
+
+	void CreateGraphicPipeline();
+
+	VkShaderModule  CreateShaderModule(const std::vector<char>& code);
 private:
 	//glfw variables
 	GLFWwindow* pWindow;

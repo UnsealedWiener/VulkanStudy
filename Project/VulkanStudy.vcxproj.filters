@@ -33,4 +33,12 @@
       <Filter>소스 파일</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\shader.vert">
+      <Filter>소스 파일</Filter>
+    </None>
+    <None Include="shaders\shader.frag">
+      <Filter>소스 파일</Filter>
+    </None>
+  </ItemGroup>
 </Project>
