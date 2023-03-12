@@ -481,7 +481,8 @@ QueueFamilyIndices  MyApp::FindQueueFamilies(VkPhysicalDevice device)
 		//It's actually possible that the queue families supporting drawing commands and the ones supporting presentation do not overlap.
 		//Therefore we have to take into account that there could be a distinct presentation queue by modifying the QueueFamilyIndices structure 
 		VkBool32 presentSupport = false;
-		if (vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport))
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		if (presentSupport)
 		{
 			indices.presentFamily = i;
 		}
